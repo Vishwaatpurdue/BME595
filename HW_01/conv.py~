@@ -1,0 +1,49 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Aug 31 03:22:58 2017
+
+@author: vishwa
+"""
+
+import torch
+import numpy as np
+class Conv2D:
+    def __init__(self,*args):
+        # Initializing all the necessary parameters to compute the convulusion
+        self.i_channel=args[0]
+        self.o_channel=args[1]
+        self.kernel_size=args[2]
+        self.mode=args[4]
+        self.stride=args[3]
+        self.k1=np.asarray([[-1,-1,-1],[ 0,0,0],[ 1,1,1]])
+        self.k2=np.asarray([[-1,-1,-1],[ 0,0,0],[ 1,1,1]]).T
+        self.k3=np.ones((3,3))
+        self.k4=np.asarray([[-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1],[0,0,0,0,0],[1,1,1,1,1],[1,1,1,1,1]])
+        self.k5=np.asarray([[-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1],[0,0,0,0,0],[1,1,1,1,1],[1,1,1,1,1]]).T
+        if self.mode=='known':
+            if self.o_channel==1:
+                self.kernel=self.k1
+            elif self.o_channel==2:
+                self.kernel=np.asarray([[self.k4],[self.k5]])
+			elif self.o_channel==3:
+				self.kernel[0,:,:]=np.asarray([[self.k1],[self.k2],[self.k3]])
+        return
+    def forward(self,image):
+        # Computing the convulusion in accordance to parameters defined during initialization
+        no_ops=0
+		if image.type()[:5]=='torch'
+        img=image.numpy()
+		if self.mode=='known':
+			for i in range(o_channel):
+				for x in range(image.shape[1]-2):
+					for y in range(image.shape[2]-2):
+						temp1=torch.mm(img[0,x:x+self.kernel_size,y:y+self.kernel_size],self.kernel[i,:,:])
+						temp2=torch.mm(img[1,x:x+self.kernel_size,y:y+self.kernel_size],self.kernel[i,:,:])
+						temp3=torch.mm(img[2,x:x+self.kernel_size,y:y+self.kernel_size],self.kernel[i,:,:])
+						img1=torch.add(temp1,temp2,temp3)
+						no_ops=no_ops+1
+        result=0
+        return no_ops, result
+
+
+test=Conv2D(3,1,3,1,'known')
