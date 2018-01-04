@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Sep 20 10:04:36 2017
+
+@author: vishwa
+"""
+
+import torch
+from torchvision import datasets, transforms
+from neural_network import NeuralNetwork
+import numpy as np
+
+class MyImg2Num(NeuralNetwork):
+    # Class to train and test the model for MNIST dataset using self developed neural network
+    
+    def __init__(self):
+        # This is the initialization function and it is an private function as 
+        # it is a constructor, hence loading the dataset is performed here which does not violate the instruction 
+        self.train_loader = torch.utils.data.DataLoader(
+                datasets.MNIST('./data', train=True, download=True,
+                   transform=transforms.Compose([
+                       transforms.ToTensor()
+                   ])))
+        NeuralNetwork.build(self,784,500,150,10)
+        return
+    
+    def forward(self,img_ip):
+        # This function classifies the image into one of the 0~9 numbers 
+                # This function provides forward propagation and identifies the desired number for that image
+        if (type(img_ip)=='torch.ByteTensor'):
+            img_ip=torch.FloatTensor(img_ip.numpy()/255)
+        self.data=torch.FloatTensor(np.zeros(785))
+        self.data[1:]=img_ip.view(-1)
+        self.data[0]=1.0
+        self.out=NeuralNetwork.forward(self,(self.data).transpose(0,-1))        
+        self.dummy,self.finalop=torch.max(self.out,0)
+        return int((self.finalop[0]).numpy())
+    
+    def train(self):
+        # This function trains the model (Neural network) to classify the given image into one of the 0~9 digit.
+        self.eta=0.5
+        self.epochs=1 
+        #self.batchsize=200
+        self.batchsize=1
+        self.traindata=torch.FloatTensor(torch.zeros(len(self.train_loader),785))
+        self.train_label=torch.FloatTensor(np.zeros(len(self.train_loader)))
+        self.train_labeloneHot=torch.FloatTensor(torch.zeros(len(self.train_loader),10))
+        # Dat is converted into a matrix of Float tensor for ease of batch operation
+        for idx, (data,lbl) in enumerate(self.train_loader):
+            self.traindata[idx,1:]=data.view(-1)
+            self.traindata[idx,0]=1.0
+            self.train_labeloneHot[idx,:]=self.__oneHot__(lbl[0])    
+            self.train_label[idx]=lbl[0]
+        # Data is fed into the neural network 
+        self.iter=int(self.epochs*len(self.train_label)/self.batchsize)
+        for loop in range(self.iter):
+            # For Batch SDG - uncomment below lines
+#            self.offset=self.batchsize*loop%(len(self.traindata)-self.batchsize)
+#            NeuralNetwork.forward(self,((self.traindata).transpose(0,-1))[:,self.offset:self.offset+self.batchsize])
+#            self.backward((self.train_labeloneHot.transpose(0,-1))[:,self.offset:self.offset+self.batchsize])
+#            self.updateParams(self.eta)
+            # For individual SDG - uncomment below lines
+            NeuralNetwork.forward(self,((self.traindata).transpose(0,-1))[:,loop%len(self.traindata)])
+            self.backward((self.train_labeloneHot.transpose(0,-1))[:,loop%len(self.traindata)])
+            self.updateParams(self.eta)
+        NeuralNetwork.forward(self,(self.traindata).transpose(0,-1))        
+        print("The total training error is: "+str(self.__err__()))
+        return
+    def __err__(self):
+        # to get the accuracy of the training
+        #self.target_lbl=torch.FloatTensor(torch.zeros(len(self.train_loader)))
+        self.dummy,self.target_lbl=torch.max(self.op,0)
+        self.err=0.0
+        for i in range(len(self.train_label)):
+            if (self.target_lbl[i]!=self.train_label[i]):
+                self.err=self.err+1.0
+        return self.err
+    def __oneHot__(self,lbl):
+        self.onehot=torch.FloatTensor(torch.zeros(10))
+        self.onehot[lbl]=1.0
+        return self.onehot
+
+
